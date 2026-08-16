@@ -14,6 +14,8 @@ function required(name: string): string {
 export const env = {
   botToken: required("BOT_TOKEN"),
   port: Number(process.env.PORT ?? 3000),
+  databaseUrl: process.env.DATABASE_URL ?? null,
+  dbSsl: process.env.DB_SSL === "true",
   db: {
     host: process.env.DB_HOST ?? "localhost",
     port: Number(process.env.DB_PORT ?? 5432),
