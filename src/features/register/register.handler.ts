@@ -3,6 +3,7 @@ import { completeRegistration, getUser, setAwaitingRegistration } from "../users
 import { isValidFullName } from "./full-name.validator";
 import registeredMenuKeyboard from "../start/start.keyboard";
 import { safeAnswerCbQuery } from "../../shared/safe-answer-cb-query";
+import { notifyReferrerOfNewRegistration } from "../referral/referral.service";
 
 export function registerRegisterHandler(bot: Telegraf): void {
   bot.action("register_start", async (ctx) => {
@@ -56,5 +57,6 @@ export function registerRegisterHandler(bot: Telegraf): void {
     }
 
     await ctx.reply(`Xush kelibsiz, ${fullName}! Siz muvaffaqiyatli ro'yxatdan o'tdingiz. 🎉`, registeredMenuKeyboard);
+    await notifyReferrerOfNewRegistration(ctx.telegram, user);
   });
 }
