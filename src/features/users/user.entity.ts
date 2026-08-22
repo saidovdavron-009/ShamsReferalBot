@@ -15,15 +15,52 @@ export class User {
   @Column({ type: "varchar", nullable: true })
   fullName!: string | null;
 
+  @Column({ type: "int", nullable: true })
+  age!: number | null;
+
+  @Column({ type: "varchar", nullable: true })
+  phone!: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  arabicLevel!: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  gender!: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  studyForm!: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  tariff!: string | null;
+
   @Column({ type: "boolean", default: false })
   isRegistered!: boolean;
 
-  @Column({ type: "boolean", default: false })
-  awaitingRegistration!: boolean;
+  @Column({ type: "varchar", nullable: true })
+  registrationStep!: string | null;
 
   @Index()
   @Column({ type: "bigint", nullable: true })
   referredBy!: string | null;
+
+  @Index({ unique: true })
+  @Column({ type: "varchar", nullable: true })
+  voucherCode!: string | null;
+
+  @Column({ type: "timestamp", nullable: true })
+  certificateIssuedAt!: Date | null;
+
+  @Column({ type: "timestamp", nullable: true })
+  bookingRequestedAt!: Date | null;
+
+  @Column({ type: "timestamp", nullable: true })
+  adminContactRequestedAt!: Date | null;
+
+  @Column({ type: "timestamp", nullable: true })
+  reminder24hSentAt!: Date | null;
+
+  @Column({ type: "timestamp", nullable: true })
+  reminder40hSentAt!: Date | null;
 
   @CreateDateColumn()
   createdAt!: Date;

@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { DataSource, DataSourceOptions } from "typeorm";
 import { env } from "./env";
 import { User } from "../features/users/user.entity";
+import { BotGroup } from "../features/groups/group.entity";
 
 const connectionOptions: DataSourceOptions = env.databaseUrl
   ? {
@@ -10,7 +11,7 @@ const connectionOptions: DataSourceOptions = env.databaseUrl
       ssl: env.dbSsl ? { rejectUnauthorized: false } : false,
       synchronize: true,
       logging: false,
-      entities: [User],
+      entities: [User, BotGroup],
     }
   : {
       type: "postgres",
@@ -21,7 +22,7 @@ const connectionOptions: DataSourceOptions = env.databaseUrl
       database: env.db.database,
       synchronize: true,
       logging: false,
-      entities: [User],
+      entities: [User, BotGroup],
     };
 
 export const AppDataSource = new DataSource(connectionOptions);

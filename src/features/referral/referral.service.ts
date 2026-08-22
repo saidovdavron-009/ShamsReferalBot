@@ -1,6 +1,7 @@
-import { Markup, Telegram } from "telegraf";
+import { Telegram } from "telegraf";
 import { User } from "../users/user.entity";
-import { getUser } from "../users/user.service";
+import { getUser, getUserByUsername } from "../users/user.service";
+import { env } from "../../config/env";
 
 export async function notifyReferrerOfNewRegistration(telegram: Telegram, newUser: User): Promise<void> {
   if (!newUser.referredBy) {
@@ -15,12 +16,25 @@ export async function notifyReferrerOfNewRegistration(telegram: Telegram, newUse
   try {
     await telegram.sendMessage(
       referrer.telegramId,
-      "🎉 Tabriklaymiz! Sizning do'stingiz ro'yxatdan o'tdi!",
-      Markup.inlineKeyboard([
-        [Markup.button.callback("🏆 Sertifikatni yuklab olish", "get_certificate")],
-      ])
+      `🎉 ${referrer.fullName}, sizning do'stingiz ro'yxatdan o'tdi!\n\n` +
+        "Do'stingiz kursga yozilsa, sizga +20% chegirma beriladi."
     );
   } catch (err) {
     console.warn(`Could not notify referrer ${referrer.telegramId}:`, err);
+  }
+
+  if (env.adminUsername) {
+    const admin = await getUserByUsername(env.adminUsername);
+
+    if (admin && admin.telegramId !== referrer.telegramId) {
+      try {
+        await telegram.sendMessage(
+          admin.telegramId,
+          `🔔 ${referrer.fullName} do'stini (${newUser.fullName ?? "noma'lum"}) taklif qilib, yana +20% chegirma qo'lga kiritdi!`
+        );
+      } catch (err) {
+        console.warn(`Could not notify admin @${env.adminUsername} of referral:`, err);
+      }
+    }
   }
 }

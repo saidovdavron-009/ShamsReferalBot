@@ -16,6 +16,7 @@ export const env = {
   port: Number(process.env.PORT ?? 3000),
   databaseUrl: process.env.DATABASE_URL ?? null,
   dbSsl: process.env.DB_SSL === "true",
+  adminUsername: process.env.ADMIN_USERNAME ?? "Shams_markaz_amdin",
   db: {
     host: process.env.DB_HOST ?? "localhost",
     port: Number(process.env.DB_PORT ?? 5432),
