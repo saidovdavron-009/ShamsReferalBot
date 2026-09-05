@@ -27,7 +27,6 @@ import { getActiveGroups } from "../groups/group.service";
 import { env } from "../../config/env";
 import { withRetry } from "../../shared/with-retry";
 import { colored } from "../../shared/colored-button";
-import { EXCEL_FILE, excelgaQoshish } from "./excel.service";
 
 const ARABIC_LEVELS: Record<string, string> = {
   none: "Yo'q",
@@ -389,16 +388,6 @@ function buildVoucherMessage(fullName: string | null, telegramId: string): { tex
 // caught and logged per-step rather than propagated, since nothing awaits
 // this call.
 async function sendVoucherSideEffects(telegram: Telegram, registeredUser: User, voucherImage: Buffer | null): Promise<void> {
-  try {
-    // Must finish before adminTask below reads EXCEL_FILE, so the admin's
-    // copy includes this registration's row.
-    await excelgaQoshish(registeredUser);
-  } catch (err) {
-    // excelgaQoshish itself never throws (errors are logged inside its
-    // queue), this catch only guards against a future change.
-    console.error(`Could not queue Excel write for ${registeredUser.telegramId}:`, err);
-  }
-
   const adminTask = (async () => {
     if (!env.adminUsername) {
       return;
@@ -406,22 +395,7 @@ async function sendVoucherSideEffects(telegram: Telegram, registeredUser: User, 
 
     const admin = await getUserByUsername(env.adminUsername);
     if (!admin) {
-      console.warn(`Excel fayli yuborilmadi: @${env.adminUsername} hali botga /start yubormagan.`);
       return;
-    }
-
-    // Har bir yangi ro'yxatdan o'tishdan keyin administratorga yangilangan
-    // lokal Excel faylining o'zi yuboriladi.
-    try {
-      await withRetry(() =>
-        telegram.sendDocument(
-          admin.telegramId,
-          { source: EXCEL_FILE },
-          { caption: `📊 Yangilangan ro'yxat: ${registeredUser.fullName}` }
-        )
-      );
-    } catch (err) {
-      console.error(`Could not send Excel file to admin @${env.adminUsername}:`, err);
     }
 
     if (voucherImage && admin.telegramId !== registeredUser.telegramId) {
@@ -614,8 +588,8 @@ export function registerRegisterHandler(bot: Telegraf): void {
 
     if (registeredUser && registeredUser.fullName) {
       // The voucher photo + text/buttons are what the user is actively
-      // waiting on, so they're sent first, back-to-back. Excel export, the
-      // admin forward, and the group/channel broadcast are side effects the
+      // waiting on, so they're sent first, back-to-back. The admin forward
+      // and the group/channel broadcast are side effects the
       // user never sees — they used to run sequentially *before* this reply,
       // which made the "tayyor bo'ldi" message crawl in after a long chain of
       // uploads. They now run afterwards, off the critical path.

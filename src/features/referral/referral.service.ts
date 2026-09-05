@@ -19,7 +19,7 @@ export async function notifyReferrerOfNewRegistration(telegram: Telegram, newUse
       `🎉 ${referrer.fullName}, sizning do'stingiz ro'yxatdan o'tdi!\n\n` +
         "Do'stingiz kursga yozilsa, sizga +20% chegirma beriladi."
     );
-  } catch (err) {
+     } catch (err) {
     console.warn(`Could not notify referrer ${referrer.telegramId}:`, err);
   }
 

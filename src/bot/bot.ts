@@ -6,14 +6,10 @@ import { registerReferralHandler } from "../features/referral/referral.handler";
 import { registerCertificateHandler } from "../features/certificate/certificate.handler";
 import { registerStatusHandler } from "../features/status/status.handler";
 import { registerGroupHandler } from "../features/groups/group.handler";
-import { ensureExcelFile } from "../features/register/excel.service";
 import { startReminderScheduler } from "../features/reminders/reminder.scheduler";
 
 export function createBot(): Telegraf {
   const bot = new Telegraf(env.botToken);
-
-  // Fayl mavjud bo'lmasa, bot ishga tushganda sarlavhalar bilan yaratiladi.
-  void ensureExcelFile();
 
   registerStartHandler(bot);
   registerReferralHandler(bot);
