@@ -3,6 +3,7 @@ import { AppDataSource } from "./config/data-source";
 import { createApp } from "./app";
 import { createBot } from "./bot/bot";
 import { env } from "./config/env";
+import { startKeepAlive } from "./shared/keep-alive";
 
 async function bootstrap(): Promise<void> {
   await AppDataSource.initialize();
@@ -12,6 +13,8 @@ async function bootstrap(): Promise<void> {
   app.listen(env.port, () => {
     console.log(`Express server running on port ${env.port}`);
   });
+
+  startKeepAlive(env.selfUrl);
 
   const bot = createBot();
   bot.launch({ dropPendingUpdates: true }).catch((err) => {

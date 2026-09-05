@@ -13,10 +13,11 @@ function required(name: string): string {
 
 export const env = {
   botToken: required("BOT_TOKEN"),
-  port: Number(process.env.PORT ?? 3000),
+  port: Number(process.env.PORT ?? 3003),
   databaseUrl: process.env.DATABASE_URL ?? null,
   dbSsl: process.env.DB_SSL === "true",
-  adminUsername: process.env.ADMIN_USERNAME ?? "Shams_markaz_amdin",
+  adminUsername: process.env.ADMIN_USERNAME ?? "Shams_markaz_admin",
+  selfUrl: process.env.SELF_URL ?? null,
   db: {
     host: process.env.DB_HOST ?? "localhost",
     port: Number(process.env.DB_PORT ?? 5432),

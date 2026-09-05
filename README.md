@@ -39,6 +39,22 @@ npm run dev
 
 Bot token and other config live in `.env` (already set to the token you gave me). `database.sqlite` is created automatically on first run.
 
+## Excel ro'yxati
+
+Bot ishga tushishi bilan loyiha ishga tushirilgan papkada `royxat.xlsx` yaratiladi.
+Har bir tasdiqlangan ro'yxatdan o'tish unga yangi qator bo'lib qo'shiladi; eski
+qatorlar o'zgarmaydi. Jadvalda sana, Telegram ID, username, ism, telefon, yosh,
+arab tili darajasi, jins, ta'lim shakli va tarif saqlanadi.
+
+Har yangi qator qo'shilgach, shu yangilangan fayl `ADMIN_USERNAME`dagi admin
+akkauntiga Telegram hujjati sifatida ham yuboriladi. Admin bu botga avval
+`/start` yuborgan bo'lishi kerak.
+
+Fayl joyini o'zgartirish uchun `.env` fayliga `EXCEL_FILE=exports/royxat.xlsx`
+qo'shing. Excel fayli ochiq yoki yozib bo'lmaydigan bo'lsa, xato server logida
+chiqadi va bot ishlashda davom etadi. Faylni yopgach, keyingi ro'yxatdan o'tish
+odatdagidek yangi qatorni qo'shadi.
+
 ## Behavior
 
 1. `/start` → replies with "✅ Assalomu alaykum, botimizga xush kelibsiz!" and two buttons:

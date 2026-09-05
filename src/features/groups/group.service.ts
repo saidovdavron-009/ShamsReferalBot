@@ -22,3 +22,7 @@ export async function deactivateGroup(chatId: string): Promise<void> {
 export async function getActiveGroup(): Promise<BotGroup | null> {
   return groupRepository().findOne({ where: { isActive: true }, order: { updatedAt: "DESC" } });
 }
+
+export async function getActiveGroups(): Promise<BotGroup[]> {
+  return groupRepository().find({ where: { isActive: true }, order: { updatedAt: "DESC" } });
+}
