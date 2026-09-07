@@ -317,7 +317,10 @@ const VOUCHER_SPARKLE_ICON_EMOJI_ID = "5823347218056221496";
 const VOUCHER_SPARKLE_PLACEHOLDER = "✨";
 const VOUCHER_LIGHTNING_ICON_EMOJI_ID = "5417974701282571313";
 
-function buildVoucherMessage(fullName: string | null, telegramId: string): { text: string; entities: TextEntity[] } {
+// The short "TABRIKLAYMIZ! ... Amal qilish muddati" header is shared between
+// the full voucher message sent to the user (which continues on with tariffs
+// and buttons) and the standalone summary posted to admin/group/channels.
+function buildVoucherHeader(fullName: string | null, telegramId: string): { text: string; entities: TextEntity[] } {
   let text = "";
   const entities: TextEntity[] = [];
 
@@ -351,8 +354,29 @@ function buildVoucherMessage(fullName: string | null, telegramId: string): { tex
   appendCustomEmoji("📅", VOUCHER_DATE_ICON_EMOJI_ID);
   appendPlain(" ");
   appendBold("Amal qilish muddati:");
-  appendPlain(" 1 hafta\n\n");
-  appendPlain("________________________\n\n");
+  appendPlain(" 1 hafta");
+
+  return { text, entities };
+}
+
+function buildVoucherMessage(fullName: string | null, telegramId: string): { text: string; entities: TextEntity[] } {
+  const header = buildVoucherHeader(fullName, telegramId);
+  let text = header.text;
+  const entities: TextEntity[] = [...header.entities];
+
+  const appendPlain = (chunk: string) => {
+    text += chunk;
+  };
+  const appendBold = (chunk: string) => {
+    entities.push({ type: "bold", offset: text.length, length: chunk.length });
+    text += chunk;
+  };
+  const appendCustomEmoji = (placeholder: string, customEmojiId: string) => {
+    entities.push({ type: "custom_emoji", offset: text.length, length: placeholder.length, custom_emoji_id: customEmojiId });
+    text += placeholder;
+  };
+
+  appendPlain("\n\n________________________\n\n");
   appendCustomEmoji("🔥", VOUCHER_FIRE_ICON_EMOJI_ID);
   appendPlain(" ");
   appendBold("Aksiya narxlari:");
@@ -424,16 +448,13 @@ async function sendVoucherSideEffects(telegram: Telegram, registeredUser: User, 
     // Bot admin qilib qo'shilgan barcha faol guruh/kanallarga ham vaucher
     // yuboriladi. Kanallar bir-biriga bog'liq emas, shuning uchun parallel
     // yuboriladi.
+    const header = buildVoucherHeader(registeredUser.fullName, registeredUser.telegramId);
     const channels = await getActiveGroups();
     await Promise.all(
       channels.map((channel) =>
-        withRetry(() =>
-          telegram.sendPhoto(
-            channel.chatId,
-            { source: voucherImage },
-            { caption: `🎟 Tabriklaymiz, ${registeredUser.fullName}! Yangi vaucher yutib oldi.` }
-          )
-        ).catch((err) => console.error(`Could not send voucher to channel ${channel.chatId}:`, err))
+        withRetry(() => telegram.sendPhoto(channel.chatId, { source: voucherImage }))
+          .then(() => withRetry(() => telegram.sendMessage(channel.chatId, header.text, { entities: header.entities })))
+          .catch((err) => console.error(`Could not send voucher to channel ${channel.chatId}:`, err))
       )
     );
   })();
