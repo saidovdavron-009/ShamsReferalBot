@@ -306,8 +306,6 @@ const voucherKeyboard = Markup.inlineKeyboard([
   [colored(Markup.button.callback("Joyni band qilish (300 000 so'm)", "reserve_spot"), "success", RESERVE_SPOT_BUTTON_ICON_EMOJI_ID)],
 ]);
 
-const VOUCHER_PARTY_ICON_EMOJI_ID = "5330523175656632877";
-const VOUCHER_PARTY_PLACEHOLDER = "🎉";
 const VOUCHER_OWNER_ICON_EMOJI_ID = "6003826425348494295";
 const VOUCHER_ID_ICON_EMOJI_ID = "5319118551427078910";
 const VOUCHER_DISCOUNT_ICON_EMOJI_ID = "5318908819584074855";
@@ -317,7 +315,7 @@ const VOUCHER_SPARKLE_ICON_EMOJI_ID = "5823347218056221496";
 const VOUCHER_SPARKLE_PLACEHOLDER = "✨";
 const VOUCHER_LIGHTNING_ICON_EMOJI_ID = "5417974701282571313";
 
-// The short "TABRIKLAYMIZ! ... Amal qilish muddati" header is shared between
+// The short "Egasi ... Amal qilish muddati" header is shared between
 // the full voucher message sent to the user (which continues on with tariffs
 // and buttons) and the standalone summary posted to admin/group/channels.
 function buildVoucherHeader(fullName: string | null, telegramId: string): { text: string; entities: TextEntity[] } {
@@ -336,9 +334,6 @@ function buildVoucherHeader(fullName: string | null, telegramId: string): { text
     text += placeholder;
   };
 
-  appendCustomEmoji(VOUCHER_PARTY_PLACEHOLDER, VOUCHER_PARTY_ICON_EMOJI_ID);
-  appendPlain(" TABRIKLAYMIZ!\n\n");
-  appendPlain("Sizning shaxsiy Vaucheringiz tayyor!\n\n");
   appendCustomEmoji("👤", VOUCHER_OWNER_ICON_EMOJI_ID);
   appendPlain(" ");
   appendBold("Egasi:");
