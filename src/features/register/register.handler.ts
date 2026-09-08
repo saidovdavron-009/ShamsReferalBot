@@ -447,9 +447,9 @@ async function sendVoucherSideEffects(telegram: Telegram, registeredUser: User, 
     const channels = await getActiveGroups();
     await Promise.all(
       channels.map((channel) =>
-        withRetry(() => telegram.sendPhoto(channel.chatId, { source: voucherImage }))
-          .then(() => withRetry(() => telegram.sendMessage(channel.chatId, header.text, { entities: header.entities })))
-          .catch((err) => console.error(`Could not send voucher to channel ${channel.chatId}:`, err))
+        withRetry(() =>
+          telegram.sendPhoto(channel.chatId, { source: voucherImage }, { caption: header.text, caption_entities: header.entities })
+        ).catch((err) => console.error(`Could not send voucher to channel ${channel.chatId}:`, err))
       )
     );
   })();
