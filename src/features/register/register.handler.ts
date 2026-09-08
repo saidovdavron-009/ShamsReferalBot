@@ -1,4 +1,4 @@
-import { Markup, Telegraf, Telegram } from "telegraf";
+import { Markup, Telegraf, Telegram, TelegramError } from "telegraf";
 import { User } from "../users/user.entity";
 import updateGender, {
   completeRegistration,
@@ -23,7 +23,7 @@ import { safeAnswerCbQuery } from "../../shared/safe-answer-cb-query";
 import { notifyReferrerOfNewRegistration } from "../referral/referral.service";
 import { getReferralLink } from "../../shared/referral-link";
 import { generateCertificateBuffer } from "../certificate/certificate.service";
-import { getActiveGroups } from "../groups/group.service";
+import { deactivateGroup, getActiveGroups } from "../groups/group.service";
 import { env } from "../../config/env";
 import { withRetry } from "../../shared/with-retry";
 import { colored } from "../../shared/colored-button";
@@ -402,6 +402,104 @@ function buildVoucherMessage(fullName: string | null, telegramId: string): { tex
   return { text, entities };
 }
 
+// Standalone summary posted only to the group/channel feed — separate from
+// buildVoucherHeader (which stays in the user-facing voucher message and the
+// admin DM), since the channel post shows the registrant's profile details
+// instead of the voucher's own Egasi/ID/Chegirma/Amal qilish muddati fields.
+// Icon set for the channel summary specifically — distinct from the
+// registration-flow button icons above, per explicit per-field IDs supplied
+// for this message.
+const CHANNEL_SUMMARY_ARABIC_LEVEL_ICON_EMOJI_IDS: Record<string, string> = {
+  none: "5456391293959690823",
+  beginner: "5456391293959690823",
+  intermediate: "5372795742727460202",
+  advanced: "5372974379007239288",
+};
+
+const CHANNEL_SUMMARY_GENDER_ICON_EMOJI_IDS: Record<string, string> = {
+  male: "5292251546715693316",
+  female: "5361956855885086373",
+};
+
+const CHANNEL_SUMMARY_TARIFF_ICON_EMOJI_IDS: Record<string, string> = {
+  yengil: "5372974379007239288",
+  orta: "5318967574736676420",
+  katta: "5318881353268208351",
+};
+
+function buildChannelSummary(user: User): { text: string; entities: TextEntity[] } {
+  let text = "";
+  const entities: TextEntity[] = [];
+
+  const appendPlain = (chunk: string) => {
+    text += chunk;
+  };
+  const appendBold = (chunk: string) => {
+    entities.push({ type: "bold", offset: text.length, length: chunk.length });
+    text += chunk;
+  };
+  const appendCustomEmoji = (placeholder: string, customEmojiId: string) => {
+    entities.push({ type: "custom_emoji", offset: text.length, length: placeholder.length, custom_emoji_id: customEmojiId });
+    text += placeholder;
+  };
+
+  appendBold("Yangi vaucher faollashtirildi!");
+  appendPlain("\n\n");
+
+  appendCustomEmoji("👤", VOUCHER_OWNER_ICON_EMOJI_ID);
+  appendPlain(" ");
+  appendBold("Ism familiya:");
+  appendPlain(` ${user.fullName ?? "-"}\n`);
+
+  appendCustomEmoji("🎂", AGE_PROMPT_CAKE_EMOJI_ID);
+  appendPlain(" ");
+  appendBold("Yosh:");
+  appendPlain(` ${user.age ?? "-"}\n`);
+
+  appendCustomEmoji("📞", PHONE_REQUEST_ICON_EMOJI_ID);
+  appendPlain(" ");
+  appendBold("Telefon raqami:");
+  appendPlain(` ${user.phone ?? "-"}\n`);
+
+  const arabicLevelIconId = user.arabicLevel ? CHANNEL_SUMMARY_ARABIC_LEVEL_ICON_EMOJI_IDS[user.arabicLevel] : undefined;
+  if (arabicLevelIconId) {
+    appendCustomEmoji("📖", arabicLevelIconId);
+    appendPlain(" ");
+  } else {
+    appendPlain("📖 ");
+  }
+  appendBold("Arab tili darajasi:");
+  appendPlain(` ${(user.arabicLevel && ARABIC_LEVELS[user.arabicLevel]) ?? "-"}\n`);
+
+  appendCustomEmoji("🎓", STUDY_FORM_CAP_EMOJI_ID);
+  appendPlain(" ");
+  appendBold("Ta'lim turi:");
+  appendPlain(` ${(user.studyForm && STUDY_FORMS[user.studyForm]) ?? "-"}\n`);
+
+  const tariffInfo = user.tariff ? TARIFFS[user.tariff] : null;
+  const tariffIconId = user.tariff ? CHANNEL_SUMMARY_TARIFF_ICON_EMOJI_IDS[user.tariff] : undefined;
+  if (tariffIconId) {
+    appendCustomEmoji("🔥", tariffIconId);
+    appendPlain(" ");
+  } else {
+    appendPlain("🔥 ");
+  }
+  appendBold("Tanlagan tarifi:");
+  appendPlain(` ${tariffInfo?.label ?? "-"}\n`);
+
+  const genderIconId = user.gender ? CHANNEL_SUMMARY_GENDER_ICON_EMOJI_IDS[user.gender] : undefined;
+  if (genderIconId) {
+    appendCustomEmoji("🚻", genderIconId);
+    appendPlain(" ");
+  } else {
+    appendPlain("🚻 ");
+  }
+  appendBold("Jins:");
+  appendPlain(` ${(user.gender && GENDERS[user.gender]) ?? "-"}`);
+
+  return { text, entities };
+}
+
 // Runs after the user already has their voucher photo and text/buttons in
 // hand, so a slow admin/channel upload never delays that reply. Errors are
 // caught and logged per-step rather than propagated, since nothing awaits
@@ -443,13 +541,22 @@ async function sendVoucherSideEffects(telegram: Telegram, registeredUser: User, 
     // Bot admin qilib qo'shilgan barcha faol guruh/kanallarga ham vaucher
     // yuboriladi. Kanallar bir-biriga bog'liq emas, shuning uchun parallel
     // yuboriladi.
-    const header = buildVoucherHeader(registeredUser.fullName, registeredUser.telegramId);
+    const summary = buildChannelSummary(registeredUser);
     const channels = await getActiveGroups();
     await Promise.all(
       channels.map((channel) =>
         withRetry(() =>
-          telegram.sendPhoto(channel.chatId, { source: voucherImage }, { caption: header.text, caption_entities: header.entities })
-        ).catch((err) => console.error(`Could not send voucher to channel ${channel.chatId}:`, err))
+          telegram.sendPhoto(channel.chatId, { source: voucherImage }, { caption: summary.text, caption_entities: summary.entities })
+        ).catch(async (err) => {
+          console.error(`Could not send voucher to channel ${channel.chatId}:`, err);
+
+          // Bot no longer has access to this chat (removed, or the chat was
+          // deleted) — stop targeting it so future registrations don't keep
+          // retrying and failing against it.
+          if (err instanceof TelegramError && /chat not found|kicked|CHAT_WRITE_FORBIDDEN/i.test(err.description)) {
+            await deactivateGroup(channel.chatId);
+          }
+        })
       )
     );
   })();
