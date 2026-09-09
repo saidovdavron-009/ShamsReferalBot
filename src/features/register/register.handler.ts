@@ -451,6 +451,15 @@ function buildChannelSummary(user: User): { text: string; entities: TextEntity[]
   appendBold("Ism familiya:");
   appendPlain(` ${user.fullName ?? "-"}\n`);
 
+  appendPlain("🔗 ");
+  appendBold("Username:");
+  appendPlain(` ${user.username ? `@${user.username}` : "-"}\n`);
+
+  appendCustomEmoji("🆔", VOUCHER_ID_ICON_EMOJI_ID);
+  appendPlain(" ");
+  appendBold("Vaucher ID:");
+  appendPlain(` #SHAMS-${user.telegramId}\n`);
+
   appendCustomEmoji("🎂", AGE_PROMPT_CAKE_EMOJI_ID);
   appendPlain(" ");
   appendBold("Yosh:");
