@@ -11,6 +11,13 @@ const NAME_X = 705;
 const NAME_Y = 532;
 const ID_X = 1090;
 const ID_Y = 532;
+const NAME_FONT_SIZE = 27;
+// A long full name would otherwise run past this point and ride over the
+// "| ID raqami:" label baked into the template background, so it wraps onto
+// a second line beneath the first instead of overlapping it.
+const NAME_MAX_WIDTH = ID_X - NAME_X - 60;
+const NAME_CHAR_WIDTH_RATIO = 0.62;
+const NAME_LINE_HEIGHT = 30;
 
 const QR_BOX_LEFT = 1558;
 const QR_BOX_TOP = 175;
@@ -32,6 +39,13 @@ const VALUE_FONT_SIZE = 22;
 // the rendered string length so the rotated block can be centered — not
 // pixel-exact, but close enough for a first pass (verified visually after).
 const VALUE_CHAR_WIDTH_RATIO = 0.56;
+// Small note squeezed into the gap between the "WWW..." sidebar text and the
+// SANA/VAQT value column, vertically centered on the VAQT value so it reads
+// as attached to the time specifically (not the date or manzil rows).
+const UZB_TIME_NOTE_TEXT = "(UZB vaqti bilan)";
+const UZB_TIME_NOTE_X = 110;
+const UZB_TIME_NOTE_FONT_SIZE = 12;
+const UZB_TIME_NOTE_COLOR = "#d8c9a3";
 const PLACEHOLDER_BAR_BG = "#65420a";
 const PLACEHOLDER_BAR_X = 112;
 const PLACEHOLDER_BAR_WIDTH = 63;
@@ -68,6 +82,33 @@ function rotatedValueBlock(
         transform="rotate(90 ${x} ${pivotY})">${escapeXml(value)}</text>`;
 }
 
+// Greedily fills each line with whole words up to NAME_MAX_WIDTH, so an
+// overlong name wraps onto a second line below the first rather than
+// running into the "ID raqami:" label to its right.
+function wrapFullName(fullName: string): string[] {
+  const words = fullName.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) {
+    return [fullName];
+  }
+
+  const lines: string[] = [];
+  let currentLine = words[0];
+
+  for (const word of words.slice(1)) {
+    const candidate = `${currentLine} ${word}`;
+    const candidateWidth = candidate.length * NAME_FONT_SIZE * NAME_CHAR_WIDTH_RATIO;
+    if (candidateWidth > NAME_MAX_WIDTH) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = candidate;
+    }
+  }
+  lines.push(currentLine);
+
+  return lines;
+}
+
 function formatDate(date: Date): string {
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -101,10 +142,15 @@ export async function generateCertificateBuffer(
     ? sharp(TEMPLATE_PATH).resize(WIDTH, HEIGHT)
     : sharp(fallbackBackground());
 
-  const safeName = escapeXml(fullName);
+  const nameLines = wrapFullName(fullName).map(escapeXml);
   const voucherId = `#SHAMS-${telegramId}`;
   const dateValue = formatDate(issuedAt);
   const timeValue = formatTime(issuedAt);
+
+  const vaqtEstimatedLength = timeValue.length * VALUE_FONT_SIZE * VALUE_CHAR_WIDTH_RATIO;
+  const vaqtPivotY = VAQT_LABEL_TOP_Y + vaqtEstimatedLength / 2;
+  const uzbTimeNoteEstimatedLength = UZB_TIME_NOTE_TEXT.length * UZB_TIME_NOTE_FONT_SIZE * VALUE_CHAR_WIDTH_RATIO;
+  const uzbTimeNoteTopY = vaqtPivotY - uzbTimeNoteEstimatedLength / 2;
 
   const qrBuffer = await QRCode.toBuffer(referralLink, {
     type: "png",
@@ -122,11 +168,17 @@ export async function generateCertificateBuffer(
 
       ${rotatedValueBlock(dateValue, VALUE_COLUMN_X, SANA_LABEL_TOP_Y, VALUE_FONT_SIZE, DATE_VALUE_COLOR)}
       ${rotatedValueBlock(timeValue, VALUE_COLUMN_X, VAQT_LABEL_TOP_Y, VALUE_FONT_SIZE, DATE_VALUE_COLOR)}
+      ${rotatedValueBlock(UZB_TIME_NOTE_TEXT, UZB_TIME_NOTE_X, uzbTimeNoteTopY, UZB_TIME_NOTE_FONT_SIZE, UZB_TIME_NOTE_COLOR)}
 
       <line x1="${DIVIDER_X}" y1="${SANA_VAQT_DIVIDER_Y}" x2="${DIVIDER_X + DIVIDER_WIDTH}" y2="${SANA_VAQT_DIVIDER_Y}" stroke="${DIVIDER_COLOR}" stroke-width="2"/>
       <line x1="${DIVIDER_X}" y1="${VAQT_MANZIL_DIVIDER_Y}" x2="${DIVIDER_X + DIVIDER_WIDTH}" y2="${VAQT_MANZIL_DIVIDER_Y}" stroke="${DIVIDER_COLOR}" stroke-width="2"/>
 
-      <text x="${NAME_X}" y="${NAME_Y}" font-size="27" font-weight="bold" font-family="Arial, sans-serif" fill="#ffffff">${safeName}</text>
+      ${nameLines
+        .map(
+          (line, index) =>
+            `<text x="${NAME_X}" y="${NAME_Y + index * NAME_LINE_HEIGHT}" font-size="${NAME_FONT_SIZE}" font-weight="bold" font-family="Arial, sans-serif" fill="#ffffff">${line}</text>`
+        )
+        .join("\n      ")}
       <text x="${ID_X}" y="${ID_Y}" font-size="27" font-weight="bold" font-family="Arial, sans-serif" fill="#ffffff">${voucherId}</text>
     </svg>
   `;
