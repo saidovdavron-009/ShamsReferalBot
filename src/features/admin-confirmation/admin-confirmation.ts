@@ -11,7 +11,7 @@ import { safeAnswerCbQuery } from "../../shared/safe-answer-cb-query";
 import { colored } from "../../shared/colored-button";
 
 // First ping fires 3 minutes after the user presses "contact admin"; if the
-// admin still hasn't answered Ha/Yo'q, it keeps repeating every 10 minutes
+// admin still hasn't answered Ha/Yo'q, it keeps repeating every 30 minutes
 // until they do (see findUsersDueForEnrollmentConfirmation).
 const CHECK_INTERVAL_MS = 60 * 1000;
 
