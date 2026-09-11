@@ -7,6 +7,10 @@ import { registerCertificateHandler } from "../features/certificate/certificate.
 import { registerStatusHandler } from "../features/status/status.handler";
 import { registerGroupHandler } from "../features/groups/group.handler";
 import { startReminderScheduler } from "../features/reminders/reminder.scheduler";
+import {
+  registerAdminConfirmationHandler,
+  startEnrollmentConfirmationScheduler,
+} from "../features/admin-confirmation/admin-confirmation";
 
 export function createBot(): Telegraf {
   const bot = new Telegraf(env.botToken);
@@ -17,8 +21,10 @@ export function createBot(): Telegraf {
   registerCertificateHandler(bot);
   registerStatusHandler(bot);
   registerGroupHandler(bot);
+  registerAdminConfirmationHandler(bot);
 
   startReminderScheduler(bot);
+  startEnrollmentConfirmationScheduler(bot);
 
   bot.catch((err) => {
     console.error("Bot error:", err);

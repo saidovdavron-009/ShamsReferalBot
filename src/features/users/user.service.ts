@@ -136,6 +136,40 @@ export async function markAdminContactRequested(telegramId: string): Promise<voi
   }
 }
 
+export async function setCourseEnrolled(telegramId: string, enrolled: boolean): Promise<void> {
+  await userRepository().update({ telegramId }, { courseEnrolled: enrolled });
+}
+
+const ENROLLMENT_CONFIRM_FIRST_DELAY_MS = 3 * 60 * 1000;
+const ENROLLMENT_CONFIRM_REPEAT_DELAY_MS = 10 * 60 * 1000;
+
+// Due for a ping either 3 minutes after first contacting admin (never pinged
+// yet) or every 10 minutes after that (already pinged, still unanswered).
+// Once the admin presses Ha/Yo'q, courseEnrolled stops being null and the
+// user drops out of both branches.
+export async function findUsersDueForEnrollmentConfirmation(): Promise<User[]> {
+  const firstThreshold = new Date(Date.now() - ENROLLMENT_CONFIRM_FIRST_DELAY_MS);
+  const repeatThreshold = new Date(Date.now() - ENROLLMENT_CONFIRM_REPEAT_DELAY_MS);
+
+  return userRepository().find({
+    where: [
+      {
+        courseEnrolled: IsNull(),
+        adminContactRequestedAt: LessThanOrEqual(firstThreshold),
+        enrollmentConfirmLastSentAt: IsNull(),
+      },
+      {
+        courseEnrolled: IsNull(),
+        enrollmentConfirmLastSentAt: LessThanOrEqual(repeatThreshold),
+      },
+    ],
+  });
+}
+
+export async function markEnrollmentConfirmationSent(telegramId: string): Promise<void> {
+  await userRepository().update({ telegramId }, { enrollmentConfirmLastSentAt: new Date() });
+}
+
 export async function findUsersDueFor24hReminder(): Promise<User[]> {
   const threshold = new Date(Date.now() - 24 * 60 * 60 * 1000);
   return userRepository().find({

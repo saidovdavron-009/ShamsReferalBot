@@ -56,6 +56,12 @@ export class User {
   @Column({ type: "timestamp", nullable: true })
   adminContactRequestedAt!: Date | null;
 
+  @Column({ type: "boolean", nullable: true })
+  courseEnrolled!: boolean | null;
+
+  @Column({ type: "timestamp", nullable: true })
+  enrollmentConfirmLastSentAt!: Date | null;
+
   @Column({ type: "timestamp", nullable: true })
   reminder24hSentAt!: Date | null;
 

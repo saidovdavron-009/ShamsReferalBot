@@ -17,6 +17,9 @@ export const env = {
   databaseUrl: process.env.DATABASE_URL ?? null,
   dbSsl: process.env.DB_SSL === "true",
   adminUsername: process.env.ADMIN_USERNAME ?? "Shams_markaz_admin",
+  // Temporary: enrollment-confirmation Ha/Yo'q pings go to this username
+  // instead of adminUsername while this flow is being tested.
+  enrollmentConfirmUsername: process.env.ENROLLMENT_CONFIRM_USERNAME ?? "Davron_Saidov",
   selfUrl: process.env.SELF_URL ?? null,
   db: {
     host: process.env.DB_HOST ?? "localhost",
