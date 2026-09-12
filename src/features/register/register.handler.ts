@@ -4,7 +4,6 @@ import updateGender, {
   completeRegistration,
   getOrIssueVoucher,
   getUser,
-  getUserByUsername,
   markAdminContactRequested,
   markBookingRequested,
   setRegistrationStep,
@@ -24,7 +23,6 @@ import { notifyReferrerOfNewRegistration } from "../referral/referral.service";
 import { getReferralLink } from "../../shared/referral-link";
 import { generateCertificateBuffer } from "../certificate/certificate.service";
 import { deactivateGroup, getActiveGroups } from "../groups/group.service";
-import { env } from "../../config/env";
 import { withRetry } from "../../shared/with-retry";
 import { colored } from "../../shared/colored-button";
 
@@ -514,34 +512,6 @@ function buildChannelSummary(user: User): { text: string; entities: TextEntity[]
 // caught and logged per-step rather than propagated, since nothing awaits
 // this call.
 async function sendVoucherSideEffects(telegram: Telegram, registeredUser: User, voucherImage: Buffer | null): Promise<void> {
-  const adminTask = (async () => {
-    if (!env.adminUsername) {
-      return;
-    }
-
-    const admin = await getUserByUsername(env.adminUsername);
-    if (!admin) {
-      return;
-    }
-
-    if (voucherImage && admin.telegramId !== registeredUser.telegramId) {
-      let caption = `🔔 Yangi vaucher: ${registeredUser.fullName} (@${registeredUser.username ?? "noma'lum"})`;
-
-      if (registeredUser.referredBy) {
-        const referrer = await getUser(registeredUser.referredBy);
-        if (referrer?.fullName) {
-          caption += `\n👥 ${referrer.fullName} orqali ro'yxatdan o'tdi`;
-        }
-      }
-
-      try {
-        await withRetry(() => telegram.sendPhoto(admin.telegramId, { source: voucherImage }, { caption }));
-      } catch (err) {
-        console.error(`Could not forward voucher to admin @${env.adminUsername}:`, err);
-      }
-    }
-  })();
-
   const channelsTask = (async () => {
     if (!voucherImage) {
       return;
@@ -570,7 +540,7 @@ async function sendVoucherSideEffects(telegram: Telegram, registeredUser: User, 
     );
   })();
 
-  await Promise.all([adminTask, channelsTask]);
+  await channelsTask;
 }
 
 export function registerRegisterHandler(bot: Telegraf): void {
