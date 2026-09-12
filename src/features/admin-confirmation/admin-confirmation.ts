@@ -11,11 +11,23 @@ import { safeAnswerCbQuery } from "../../shared/safe-answer-cb-query";
 import { colored } from "../../shared/colored-button";
 
 // First ping fires 3 minutes after the user presses "contact admin"; if the
-// admin still hasn't answered Ha/Yo'q, it keeps repeating every 30 minutes
+// admin still hasn't answered Ha/Yo'q, it keeps repeating every 12 hours
 // until they do (see findUsersDueForEnrollmentConfirmation).
 const CHECK_INTERVAL_MS = 60 * 1000;
 
-const ENROLLED_MESSAGE = "🎉 Tabriklaymiz! Siz kursga muvaffaqiyatli yozildingiz!";
+function buildEnrolledMessage(name: string): string {
+  return `Assalomu alaykum, ${name}!
+
+Tabriklaymiz! 🎉
+✅ Siz Shams individual kursiga muvaffaqiyatli yozildingiz.
+
+Bu — yangi bosqich.
+Alloh ilmizi ziyoda qilsin,
+o‘qishlaringizni oson va barakali qilsin.
+
+Xush kelibsiz!
+Shams jamoasi`;
+}
 const NOT_ENROLLED_MESSAGE = "❌ Kursga yozilmaganingiz sababli vaucheringiz bekor qilindi.";
 
 // Custom emoji rendered in place of the leading glyph of the message below;
@@ -28,9 +40,15 @@ function leadingEmojiEntity(text: string, placeholder: string, customEmojiId: st
     : [];
 }
 
+// Bolds everything from "Tabriklaymiz!" to the end of the message, leaving
+// the "Assalomu alaykum, {name}!" greeting line unstyled.
+function boldFromMarker(text: string, marker: string) {
+  const offset = text.indexOf(marker);
+  return offset >= 0 ? [{ type: "bold" as const, offset, length: text.length - offset }] : [];
+}
+
 const ENROLLED_CONFIRMED_CHECK_EMOJI_ID = "6107110905529504864";
-const ENROLLED_PARTY_EMOJI_ID = "5404736937766430301";
-const ENROLLED_MESSAGE_ENTITIES = leadingEmojiEntity(ENROLLED_MESSAGE, "🎉", ENROLLED_PARTY_EMOJI_ID);
+const ENROLLED_PARTY_EMOJI_ID = "5420169528355072902";
 
 function buildConfirmationKeyboard(telegramId: string) {
   return Markup.inlineKeyboard([
@@ -88,7 +106,14 @@ export function registerAdminConfirmationHandler(bot: Telegraf): void {
 
     try {
       if (enrolled) {
-        await ctx.telegram.sendMessage(telegramId, ENROLLED_MESSAGE, { entities: ENROLLED_MESSAGE_ENTITIES });
+        const enrolledMessage = buildEnrolledMessage(name);
+        await ctx.telegram.sendMessage(telegramId, enrolledMessage, {
+          entities: [
+            ...boldFromMarker(enrolledMessage, "Tabriklaymiz!"),
+            ...leadingEmojiEntity(enrolledMessage, "🎉", ENROLLED_PARTY_EMOJI_ID),
+            ...leadingEmojiEntity(enrolledMessage, "✅", ENROLLED_CONFIRMED_CHECK_EMOJI_ID),
+          ],
+        });
       } else {
         await ctx.telegram.sendMessage(telegramId, NOT_ENROLLED_MESSAGE);
       }

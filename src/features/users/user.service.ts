@@ -141,10 +141,10 @@ export async function setCourseEnrolled(telegramId: string, enrolled: boolean): 
 }
 
 const ENROLLMENT_CONFIRM_FIRST_DELAY_MS = 3 * 60 * 1000;
-const ENROLLMENT_CONFIRM_REPEAT_DELAY_MS = 30 * 60 * 1000;
+const ENROLLMENT_CONFIRM_REPEAT_DELAY_MS = 12 * 60 * 60 * 1000;
 
 // Due for a ping either 3 minutes after first contacting admin (never pinged
-// yet) or every 30 minutes after that (already pinged, still unanswered).
+// yet) or every 12 hours after that (already pinged, still unanswered).
 // Once the admin presses Ha/Yo'q, courseEnrolled stops being null and the
 // user drops out of both branches.
 export async function findUsersDueForEnrollmentConfirmation(): Promise<User[]> {
