@@ -208,3 +208,17 @@ export async function markReminder24hSent(telegramId: string): Promise<void> {
 export async function markReminder40hSent(telegramId: string): Promise<void> {
   await userRepository().update({ telegramId }, { reminder40hSentAt: new Date() });
 }
+
+export async function getUsersByRegistration(
+  isRegistered: boolean,
+  page: number,
+  pageSize: number
+): Promise<{ users: User[]; total: number }> {
+  const [users, total] = await userRepository().findAndCount({
+    where: { isRegistered },
+    order: { createdAt: "DESC" },
+    skip: page * pageSize,
+    take: pageSize,
+  });
+  return { users, total };
+}
