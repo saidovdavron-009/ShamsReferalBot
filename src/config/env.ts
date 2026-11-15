@@ -20,7 +20,7 @@ export const env = {
   enrollmentConfirmUsername: process.env.ENROLLMENT_CONFIRM_USERNAME ?? "Shams_markaz_admin",
   // Comma-separated Telegram usernames (without @) that see the
   // "Foydalanuvchilarni ko'rish" button and can view user statistics.
-  statsViewerUsernames: (process.env.STATS_VIEWER_USERNAMES ?? "Davron_Saidov")
+  statsViewerUsernames: (process.env.STATS_VIEWER_USERNAMES ?? "Davron_Saidov,Mister_Abdurahmon")
     .split(",")
     .map((name) => name.trim().replace(/^@/, "").toLowerCase())
     .filter(Boolean),
