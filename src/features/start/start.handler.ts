@@ -1,6 +1,11 @@
 import {Telegraf} from "telegraf";
 import {findOrCreateUser, setRegistrationStep} from "../users/user.service";
-import registeredMenuKeyboard, {mainMenuKeyboard} from "./start.keyboard";
+import registeredMenuKeyboard, {
+    mainMenuKeyboard,
+    mainMenuKeyboardWithStats,
+    registeredMenuKeyboardWithStats,
+} from "./start.keyboard";
+import {isStatsViewer} from "../stats/stats.handler";
 
 // Custom emoji rendered in place of the glyphs below; the underlying
 // characters are kept only as required placeholders for the entity offsets.
@@ -47,11 +52,13 @@ export function registerStartHandler(bot: Telegraf): void {
             await setRegistrationStep(telegramId, null);
         }
 
+        const canViewStats = isStatsViewer(username);
+
         if (user.isRegistered) {
             await ctx.reply(
                 `✅ Xush kelibsiz, ${user.fullName}!\n\n` +
                 `🤝 Do'stingizni taklif qiling va 1 000 000 so'mlik vaucherni qo'lga kiriting!`,
-                registeredMenuKeyboard
+                canViewStats ? registeredMenuKeyboardWithStats : registeredMenuKeyboard
             );
             return;
         }
@@ -93,6 +100,6 @@ export function registerStartHandler(bot: Telegraf): void {
                 : null,
         ].filter((entity): entity is NonNullable<typeof entity> => entity !== null);
 
-        await ctx.reply(WELCOME_TEXT, { ...mainMenuKeyboard, entities });
+        await ctx.reply(WELCOME_TEXT, { ...(canViewStats ? mainMenuKeyboardWithStats : mainMenuKeyboard), entities });
     });
 }

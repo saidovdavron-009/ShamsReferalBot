@@ -11,9 +11,20 @@ export const mainMenuKeyboard = Markup.inlineKeyboard([
   [colored(Markup.button.callback("Ro'yxatdan o'tish", "register_start"), "success", REGISTER_BUTTON_ICON_EMOJI_ID)],
 ]);
 
-const registeredMenuKeyboard = Markup.inlineKeyboard([
+const registeredMenuRows = [
   [colored(Markup.button.callback("Yaqiningizni taklif qiling", "invite_friend"), "success", INVITE_FRIEND_BUTTON_ICON_EMOJI_ID)],
   [colored(Markup.button.callback("Status", "status"), "primary", STATUS_BUTTON_ICON_EMOJI_ID)],
   [colored(Markup.button.callback("Ism familiyani tahrirlash", "edit_name"), "primary", EDIT_NAME_BUTTON_ICON_EMOJI_ID)],
+];
+
+const registeredMenuKeyboard = Markup.inlineKeyboard(registeredMenuRows);
+
+const viewUsersRow = [colored(Markup.button.callback("👥 Foydalanuvchilarni ko'rish", "view_users"), "primary")];
+
+// Same menus with the extra stats button, shown only to stats viewers.
+export const registeredMenuKeyboardWithStats = Markup.inlineKeyboard([...registeredMenuRows, viewUsersRow]);
+export const mainMenuKeyboardWithStats = Markup.inlineKeyboard([
+  [colored(Markup.button.callback("Ro'yxatdan o'tish", "register_start"), "success", REGISTER_BUTTON_ICON_EMOJI_ID)],
+  viewUsersRow,
 ]);
 export default registeredMenuKeyboard

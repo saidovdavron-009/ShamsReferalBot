@@ -18,6 +18,12 @@ export const env = {
   dbSsl: process.env.DB_SSL === "true",
   adminUsername: process.env.ADMIN_USERNAME ?? "Shams_markaz_admin",
   enrollmentConfirmUsername: process.env.ENROLLMENT_CONFIRM_USERNAME ?? "Shams_markaz_admin",
+  // Comma-separated Telegram usernames (without @) that see the
+  // "Foydalanuvchilarni ko'rish" button and can view user statistics.
+  statsViewerUsernames: (process.env.STATS_VIEWER_USERNAMES ?? "Davron_Saidov")
+    .split(",")
+    .map((name) => name.trim().replace(/^@/, "").toLowerCase())
+    .filter(Boolean),
   selfUrl: process.env.SELF_URL ?? null,
   db: {
     host: process.env.DB_HOST ?? "localhost",

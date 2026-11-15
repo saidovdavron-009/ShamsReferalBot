@@ -85,6 +85,15 @@ export async function getUserByUsername(username: string): Promise<User | null> 
   return userRepository().findOne({ where: { username } });
 }
 
+export async function getUserStats(): Promise<{ total: number; registered: number }> {
+  const repo = userRepository();
+  const [total, registered] = await Promise.all([
+    repo.count(),
+    repo.count({ where: { isRegistered: true } }),
+  ]);
+  return { total, registered };
+}
+
 export async function countReferrals(telegramId: string): Promise<number> {
   return userRepository().count({ where: { referredBy: telegramId } });
 }
