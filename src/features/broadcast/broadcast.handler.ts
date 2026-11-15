@@ -4,39 +4,21 @@ import { isStatsViewer } from "../stats/stats.handler";
 import { safeAnswerCbQuery } from "../../shared/safe-answer-cb-query";
 import { colored } from "../../shared/colored-button";
 
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function buildReminderText(name: string): string {
-  return (
-    `Assalomu alaykum, <b>${escapeHtml(name)}</b>! 👋\n\n` +
-    "Siz hali ham bizning botimizdan ro'yxatdan o'tmagan ekansiz 😊\n\n" +
-    "🎁 Hoziroq ro'yxatdan o'ting va kurslarimiz uchun <b>1 000 000 so'mlik chegirmaga</b> ega bo'ling!\n\n" +
-    "Sizni o'quvchilarimiz safida ko'rishdan mamnun bo'lamiz 🤝\n\n" +
-    "👇 Ro'yxatdan o'tish uchun pastdagi tugmani bosing"
-  );
-}
-
-// Unregistered users usually have no fullName yet, so fall back to their
-// Telegram first name, then to a generic greeting.
-async function resolveName(bot: Telegraf, telegramId: string, fullName: string | null): Promise<string> {
-  if (fullName) return fullName;
-  try {
-    const chat = await bot.telegram.getChat(telegramId);
-    if ("first_name" in chat && chat.first_name) return chat.first_name;
-  } catch {
-    // ignore — sendMessage below will report the real failure
-  }
-  return "aziz foydalanuvchi";
-}
+const REMINDER_TEXT =
+  "Assalomu alaykum! 👋\n\n" +
+  "Siz hali ham bizning botimizdan ro'yxatdan o'tmagan ekansiz 😊\n\n" +
+  "🎁 Hoziroq ro'yxatdan o'ting va kurslarimiz uchun <b>1 000 000 so'mlik chegirmaga</b> ega bo'ling!\n\n" +
+  "Sizni o'quvchilarimiz safida ko'rishdan mamnun bo'lamiz 🤝\n\n" +
+  "👇 Ro'yxatdan o'tish uchun pastdagi tugmani bosing";
 
 const reminderKeyboard = Markup.inlineKeyboard([
   [colored(Markup.button.callback("Ro'yxatdan o'tish", "register_start"), "success")],
 ]);
 
-// Telegram allows ~30 messages/second per bot; stay safely below it.
-const SEND_DELAY_MS = 50;
+// Telegram allows ~30 messages/second per bot, so send in parallel batches
+// of 25 with a one-second pause between batches.
+const BATCH_SIZE = 25;
+const BATCH_DELAY_MS = 1000;
 
 let broadcastInProgress = false;
 
@@ -49,20 +31,28 @@ async function runBroadcast(bot: Telegraf, adminChatId: number): Promise<void> {
   let sent = 0;
   let failed = 0;
 
-  for (const user of users) {
-    try {
-      const name = await resolveName(bot, user.telegramId, user.fullName);
-      await bot.telegram.sendMessage(user.telegramId, buildReminderText(name), {
-        parse_mode: "HTML",
-        ...reminderKeyboard,
-      });
-      sent++;
-    } catch (err) {
-      // Usually the user blocked the bot or deleted their account.
-      failed++;
-      console.warn(`Could not send unregistered reminder to ${user.telegramId}:`, err);
-    }
-    await delay(SEND_DELAY_MS);
+  for (let i = 0; i < users.length; i += BATCH_SIZE) {
+    const batch = users.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map((user) =>
+        bot.telegram.sendMessage(user.telegramId, REMINDER_TEXT, {
+          parse_mode: "HTML",
+          ...reminderKeyboard,
+        })
+      )
+    );
+
+    results.forEach((result, idx) => {
+      if (result.status === "fulfilled") {
+        sent++;
+      } else {
+        // Usually the user blocked the bot or deleted their account.
+        failed++;
+        console.warn(`Could not send unregistered reminder to ${batch[idx].telegramId}:`, result.reason);
+      }
+    });
+
+    if (i + BATCH_SIZE < users.length) await delay(BATCH_DELAY_MS);
   }
 
   await bot.telegram.sendMessage(
@@ -85,9 +75,8 @@ export function registerBroadcastHandler(bot: Telegraf): void {
     await ctx.reply(
       `📢 Ro'yxatdan o'tmagan <b>${total - registered} ta</b> foydalanuvchiga quyidagi xabar yuboriladi:\n\n` +
         "———\n" +
-        `${buildReminderText("{ism}")}\n` +
-        "———\n" +
-        "<i>{ism} o'rniga har bir foydalanuvchining ismi qo'yiladi.</i>\n\n" +
+        `${REMINDER_TEXT}\n` +
+        "———\n\n" +
         "Yuborilsinmi?",
       {
         parse_mode: "HTML",
