@@ -4,9 +4,32 @@ import { isStatsViewer } from "../stats/stats.handler";
 import { safeAnswerCbQuery } from "../../shared/safe-answer-cb-query";
 import { colored } from "../../shared/colored-button";
 
-const UNREGISTERED_REMINDER_TEXT =
-  "Siz hali ham bizning botimizdan ro'yxatdan o'tmagan ekansiz 😊\n\n" +
-  "1 000 000 so'mgacha chegirma vaucherini qo'lga kiritish uchun ro'yxatdan o'ting — hozir emas, hoziroq! 👇";
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function buildReminderText(name: string): string {
+  return (
+    `Assalomu alaykum, <b>${escapeHtml(name)}</b>! 👋\n\n` +
+    "Siz hali ham bizning botimizdan ro'yxatdan o'tmagan ekansiz 😊\n\n" +
+    "🎁 Hoziroq ro'yxatdan o'ting va kurslarimiz uchun <b>1 000 000 so'mlik chegirmaga</b> ega bo'ling!\n\n" +
+    "Sizni o'quvchilarimiz safida ko'rishdan mamnun bo'lamiz 🤝\n\n" +
+    "👇 Ro'yxatdan o'tish uchun pastdagi tugmani bosing"
+  );
+}
+
+// Unregistered users usually have no fullName yet, so fall back to their
+// Telegram first name, then to a generic greeting.
+async function resolveName(bot: Telegraf, telegramId: string, fullName: string | null): Promise<string> {
+  if (fullName) return fullName;
+  try {
+    const chat = await bot.telegram.getChat(telegramId);
+    if ("first_name" in chat && chat.first_name) return chat.first_name;
+  } catch {
+    // ignore — sendMessage below will report the real failure
+  }
+  return "aziz foydalanuvchi";
+}
 
 const reminderKeyboard = Markup.inlineKeyboard([
   [colored(Markup.button.callback("Ro'yxatdan o'tish", "register_start"), "success")],
@@ -28,7 +51,11 @@ async function runBroadcast(bot: Telegraf, adminChatId: number): Promise<void> {
 
   for (const user of users) {
     try {
-      await bot.telegram.sendMessage(user.telegramId, UNREGISTERED_REMINDER_TEXT, reminderKeyboard);
+      const name = await resolveName(bot, user.telegramId, user.fullName);
+      await bot.telegram.sendMessage(user.telegramId, buildReminderText(name), {
+        parse_mode: "HTML",
+        ...reminderKeyboard,
+      });
       sent++;
     } catch (err) {
       // Usually the user blocked the bot or deleted their account.
@@ -56,14 +83,21 @@ export function registerBroadcastHandler(bot: Telegraf): void {
 
     const { total, registered } = await getUserStats();
     await ctx.reply(
-      `📢 Ro'yxatdan o'tmagan ${total - registered} ta foydalanuvchiga quyidagi xabar yuboriladi:\n\n` +
-        `«${UNREGISTERED_REMINDER_TEXT}»\n\nYuborilsinmi?`,
-      Markup.inlineKeyboard([
-        [
-          colored(Markup.button.callback("✅ Ha, yuborish", "broadcast_unreg_confirm"), "success"),
-          colored(Markup.button.callback("❌ Bekor qilish", "broadcast_unreg_cancel"), "danger"),
-        ],
-      ])
+      `📢 Ro'yxatdan o'tmagan <b>${total - registered} ta</b> foydalanuvchiga quyidagi xabar yuboriladi:\n\n` +
+        "———\n" +
+        `${buildReminderText("{ism}")}\n` +
+        "———\n" +
+        "<i>{ism} o'rniga har bir foydalanuvchining ismi qo'yiladi.</i>\n\n" +
+        "Yuborilsinmi?",
+      {
+        parse_mode: "HTML",
+        ...Markup.inlineKeyboard([
+          [
+            colored(Markup.button.callback("✅ Ha, yuborish", "broadcast_unreg_confirm"), "success"),
+            colored(Markup.button.callback("❌ Bekor qilish", "broadcast_unreg_cancel"), "danger"),
+          ],
+        ]),
+      }
     );
   });
 
