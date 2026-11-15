@@ -222,3 +222,7 @@ export async function getUsersByRegistration(
   });
   return { users, total };
 }
+
+export async function getAllUnregisteredUsers(): Promise<User[]> {
+  return userRepository().find({ where: { isRegistered: false } });
+}

@@ -6,6 +6,7 @@ import { registerReferralHandler } from "../features/referral/referral.handler";
 import { registerCertificateHandler } from "../features/certificate/certificate.handler";
 import { registerStatusHandler } from "../features/status/status.handler";
 import { registerStatsHandler } from "../features/stats/stats.handler";
+import { registerBroadcastHandler } from "../features/broadcast/broadcast.handler";
 import { registerGroupHandler } from "../features/groups/group.handler";
 import { startReminderScheduler } from "../features/reminders/reminder.scheduler";
 import {
@@ -22,6 +23,7 @@ export function createBot(): Telegraf {
   registerCertificateHandler(bot);
   registerStatusHandler(bot);
   registerStatsHandler(bot);
+  registerBroadcastHandler(bot);
   registerGroupHandler(bot);
   registerAdminConfirmationHandler(bot);
 

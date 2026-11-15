@@ -20,11 +20,19 @@ const registeredMenuRows = [
 const registeredMenuKeyboard = Markup.inlineKeyboard(registeredMenuRows);
 
 const viewUsersRow = [colored(Markup.button.callback("👥 Foydalanuvchilarni ko'rish", "view_users"), "primary")];
+const broadcastUnregisteredRow = [
+  colored(Markup.button.callback("📢 Ro'yxatdan o'tmaganlarga xabar yuborish", "broadcast_unreg"), "danger"),
+];
 
-// Same menus with the extra stats button, shown only to stats viewers.
-export const registeredMenuKeyboardWithStats = Markup.inlineKeyboard([...registeredMenuRows, viewUsersRow]);
+// Same menus with the extra admin buttons, shown only to stats viewers.
+export const registeredMenuKeyboardWithStats = Markup.inlineKeyboard([
+  ...registeredMenuRows,
+  viewUsersRow,
+  broadcastUnregisteredRow,
+]);
 export const mainMenuKeyboardWithStats = Markup.inlineKeyboard([
   [colored(Markup.button.callback("Ro'yxatdan o'tish", "register_start"), "success", REGISTER_BUTTON_ICON_EMOJI_ID)],
   viewUsersRow,
+  broadcastUnregisteredRow,
 ]);
 export default registeredMenuKeyboard
